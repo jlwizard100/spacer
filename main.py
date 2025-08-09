@@ -46,10 +46,10 @@ class Player:
 
         if keys[key.W]:
             self.position[0] -= dx
-            self.position[2] += dz
+            self.position[2] -= dz
         if keys[key.S]:
             self.position[0] += dx
-            self.position[2] -= dz
+            self.position[2] += dz
         if keys[key.A]:
             self.rotation[1] -= dt * PLAYER_ROTATION_SPEED
         if keys[key.D]:
@@ -87,7 +87,7 @@ class Framebuffer:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.texture = pyglet.image.Texture.create(width, height, GL_RGBA)
+        self.texture = pyglet.image.Texture.create(width, height, internalformat=GL_RGBA)
         fbo_id = GLuint()
         glGenFramebuffers(1, byref(fbo_id))
         self.id = fbo_id.value
