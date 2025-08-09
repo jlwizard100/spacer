@@ -17,7 +17,6 @@ import math
 import pyglet
 from ctypes import byref
 from pyglet import gl
-from pyglet.gl import glu
 from pyglet.window import key
 
 # --- Constants ---
@@ -141,7 +140,7 @@ class CarWindow(pyglet.window.Window):
     def set_3d_projection(self, width, height):
         gl.glMatrixMode(gl.GL_PROJECTION)
         gl.glLoadIdentity()
-        glu.gluPerspective(65.0, width / float(height) if height > 0 else 1.0, 0.1, 1000.0)
+        gl.gluPerspective(65.0, width / float(height) if height > 0 else 1.0, 0.1, 1000.0)
         gl.glMatrixMode(gl.GL_MODELVIEW)
 
     def on_draw(self):
