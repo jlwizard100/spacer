@@ -81,8 +81,8 @@ def main():
             # Common axis mappings (may need adjustment for different controllers)
             j_yaw = deadzone(joystick.get_axis(0))    # Left stick X
             j_pitch = -deadzone(joystick.get_axis(1)) # Left stick Y (inverted)
-            if joystick.get_numaxes() > 3:
-                j_roll = deadzone(joystick.get_axis(3))   # Right stick X
+            if joystick.get_numaxes() > 2:
+                j_roll = deadzone(joystick.get_axis(2)) # Mapped to axis 2 as requested
 
             # Thrust from Right Trigger (e.g., axis 5 on Xbox controller)
             # This axis rests at -1.0 and goes to 1.0 when fully pressed.

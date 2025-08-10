@@ -59,9 +59,9 @@ class Spaceship:
         self.angular_velocity = np.array([0.0, 0.0, 0.0]) # Body space angular velocity (rad/s)
 
         # Thruster Properties from the prompt
-        self.main_thruster_min_force = 1000.0 # N
-        self.main_thruster_max_force = 3000.0 # N
-        self.steering_thruster_force = 200.0  # N
+        self.main_thruster_min_force = 2000.0 # N
+        self.main_thruster_max_force = 10000.0 # N
+        self.steering_thruster_force = 500.0  # N
 
     def get_forward_vector(self):
         """Returns the current forward-facing vector in world space."""
