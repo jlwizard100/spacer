@@ -148,7 +148,7 @@ def main():
         for g in gs["gates"]: draw_gate(screen, g, gs["camera"])
         draw_ship(screen, gs["ship"], gs["camera"])
 
-        gs["hud"].update(gs["ship"])
+        gs["hud"].update(gs["ship"], thrust_input)
         gs["hud"].draw(screen)
 
         # --- Game State Overlay ---
