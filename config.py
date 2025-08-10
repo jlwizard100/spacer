@@ -13,6 +13,11 @@ MAIN_THRUSTER_MAX_FORCE = 10000.0 # Newtons
 # Steering thrusters provide rotational force (torque)
 STEERING_THRUSTER_FORCE = 500.0  # Newtons
 
+# --- Flight Model ---
+# Enables or disables angular damping (flight assist).
+# When False, the ship will not stop rotating unless counter-thrust is applied.
+FLIGHT_ASSIST_ENABLED = False
+
 # --- Joystick Axis Configuration ---
 # Note: Axis mappings can vary between controllers.
 # These are common defaults (e.g., for an Xbox controller).

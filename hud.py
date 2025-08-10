@@ -2,29 +2,6 @@ import pygame
 import numpy as np
 import math
 
-def quaternion_to_euler(q):
-    """Converts a quaternion (w, x, y, z) to Euler angles (roll, pitch, yaw) in degrees."""
-    w, x, y, z = q
-
-    # Roll (x-axis rotation)
-    t0 = +2.0 * (w * x + y * z)
-    t1 = +1.0 - 2.0 * (x * x + y * y)
-    roll_x = math.atan2(t0, t1)
-
-    # Pitch (y-axis rotation)
-    t2 = +2.0 * (w * y - z * x)
-    t2 = +1.0 if t2 > +1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-    pitch_y = math.asin(t2)
-
-    # Yaw (z-axis rotation)
-    t3 = +2.0 * (w * z + x * y)
-    t4 = +1.0 - 2.0 * (y * y + z * z)
-    yaw_z = math.atan2(t3, t4)
-
-    return np.degrees(roll_x), np.degrees(pitch_y), np.degrees(yaw_z)
-
-
 class HUD:
     """
     Manages the Heads-Up Display, which shows ship telemetry at the bottom of the screen.
@@ -59,15 +36,14 @@ class HUD:
             thrust_n = ship.main_thruster_min_force + \
                        (ship.main_thruster_max_force - ship.main_thruster_min_force) * thrust_input
 
-            # Convert orientation to Euler angles in degrees
-            roll, pitch, yaw = quaternion_to_euler(ship.orientation)
-
             # Format the data into strings
+            fwd, up, right = ship.get_forward_vector(), ship.get_up_vector(), ship.get_right_vector()
             telemetry_data = [
-                f"Speed           : {vel_kmh:>8.1f} km/h   |   Thrust: {thrust_n:>8.0f} N",
-                f"Position (X,Y,Z): {pos[0]:>8.1f}, {pos[1]:>8.1f}, {pos[2]:>8.1f}",
-                f"Direction   (Vec): <{ship.get_forward_vector()[0]:.2f}, {ship.get_forward_vector()[1]:.2f}, {ship.get_forward_vector()[2]:.2f}>",
-                f"Orientation (R,P,Y): {roll:>8.1f}°, {pitch:>8.1f}°, {yaw:>8.1f}°"
+                f"Speed        : {vel_kmh:>8.1f} km/h   |   Thrust: {thrust_n:>8.0f} N",
+                f"Position(XYZ): {pos[0]:>8.1f}, {pos[1]:>8.1f}, {pos[2]:>8.1f}",
+                f"Forward (Vec): <{fwd[0]:>6.2f}, {fwd[1]:>6.2f}, {fwd[2]:>6.2f}>",
+                f"Up      (Vec): <{up[0]:>6.2f}, {up[1]:>6.2f}, {up[2]:>6.2f}>",
+                f"Right   (Vec): <{right[0]:>6.2f}, {right[1]:>6.2f}, {right[2]:>6.2f}>"
             ]
 
             # Re-render the text surfaces and store them in the cache

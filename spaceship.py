@@ -100,9 +100,10 @@ class Spaceship:
             self.orientation /= norm
 
         # --- Flight Assist: Angular Damping ---
-        # If there is no rotational input from the player, gradually slow down the ship's spin.
-        # This makes the controls less frustrating and more "fly-by-wire".
-        has_rot_input = (pitch_input != 0 or yaw_input != 0 or roll_input != 0)
-        if not has_rot_input:
-            damping_factor = 1.5 # How quickly to stop rotation
-            self.angular_velocity *= (1.0 - damping_factor * dt)
+        if config.FLIGHT_ASSIST_ENABLED:
+            # If there is no rotational input from the player, gradually slow down the ship's spin.
+            # This makes the controls less frustrating and more "fly-by-wire".
+            has_rot_input = (pitch_input != 0 or yaw_input != 0 or roll_input != 0)
+            if not has_rot_input:
+                damping_factor = 1.5 # How quickly to stop rotation
+                self.angular_velocity *= (1.0 - damping_factor * dt)
