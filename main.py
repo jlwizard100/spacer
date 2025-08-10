@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+import config
 from spaceship import Spaceship, qv_rotate
 from renderer import Camera, draw_ship, draw_asteroid, draw_gate
 from game_objects import create_asteroid_field, create_gate_course
@@ -78,16 +79,17 @@ def main():
         if joystick:
             def deadzone(val, dz=0.15): return val if abs(val) > dz else 0.0
 
-            # Common axis mappings (may need adjustment for different controllers)
-            j_yaw = deadzone(joystick.get_axis(0))    # Left stick X
-            j_pitch = -deadzone(joystick.get_axis(1)) # Left stick Y (inverted)
-            if joystick.get_numaxes() > 2:
-                j_roll = deadzone(joystick.get_axis(2)) # Mapped to axis 2 as requested
+            # Axis mappings from config file
+            if joystick.get_numaxes() > config.JOYSTICK_AXIS_YAW:
+                j_yaw = deadzone(joystick.get_axis(config.JOYSTICK_AXIS_YAW))
+            if joystick.get_numaxes() > config.JOYSTICK_AXIS_PITCH:
+                j_pitch = -deadzone(joystick.get_axis(config.JOYSTICK_AXIS_PITCH)) # Inverted
+            if joystick.get_numaxes() > config.JOYSTICK_AXIS_ROLL:
+                j_roll = deadzone(joystick.get_axis(config.JOYSTICK_AXIS_ROLL))
 
-            # Thrust from Right Trigger (e.g., axis 5 on Xbox controller)
-            # This axis rests at -1.0 and goes to 1.0 when fully pressed.
-            if joystick.get_numaxes() > 5:
-                trigger_val = joystick.get_axis(5)
+            # Thrust from a trigger axis
+            if joystick.get_numaxes() > config.JOYSTICK_AXIS_THRUST:
+                trigger_val = joystick.get_axis(config.JOYSTICK_AXIS_THRUST)
                 if trigger_val > -0.99: # If trigger is being used
                     thrust_input = (trigger_val + 1.0) / 2.0
                     j_thrust_active = True

@@ -1,4 +1,5 @@
 import numpy as np
+import config
 
 # --- Quaternion Helper Functions ---
 def q_conjugate(q):
@@ -28,8 +29,8 @@ class Spaceship:
     Represents the player's spaceship, handling its physics and state.
     """
     def __init__(self):
-        # Physical properties from the prompt
-        self.mass = 20000.0  # kg
+        # Physical properties from config
+        self.mass = config.SHIP_MASS
 
         # Ship dimensions (length: 40m, width: 15m)
         # Body frame: +x is right, +y is up, +z is forward
@@ -58,10 +59,10 @@ class Spaceship:
         self.orientation = np.array([1.0, 0.0, 0.0, 0.0]) # Identity quaternion
         self.angular_velocity = np.array([0.0, 0.0, 0.0]) # Body space angular velocity (rad/s)
 
-        # Thruster Properties from the prompt
-        self.main_thruster_min_force = 2000.0 # N
-        self.main_thruster_max_force = 10000.0 # N
-        self.steering_thruster_force = 500.0  # N
+        # Thruster Properties from config
+        self.main_thruster_min_force = config.MAIN_THRUSTER_MIN_FORCE
+        self.main_thruster_max_force = config.MAIN_THRUSTER_MAX_FORCE
+        self.steering_thruster_force = config.STEERING_THRUSTER_FORCE
 
     def get_forward_vector(self):
         """Returns the current forward-facing vector in world space."""
