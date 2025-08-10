@@ -1,4 +1,5 @@
 import numpy as np
+from utils import q_multiply
 
 # --- Quaternion helper for gate setup ---
 def q_from_axis_angle(axis, angle):
@@ -16,9 +17,26 @@ class Asteroid:
     def __init__(self, position, size):
         self.position = position
         self.size = size
-        # Asteroids are static and don't rotate for now
-        self.orientation = np.array([1.0, 0.0, 0.0, 0.0])
+
+        # Give asteroid a random initial orientation and angular velocity
+        axis = np.random.rand(3) * 2 - 1
+        axis /= np.linalg.norm(axis)
+        angle = np.random.rand() * 2 * np.pi
+        self.orientation = q_from_axis_angle(axis, angle)
+        self.angular_velocity = np.random.rand(3) * 0.5 # rad/s
+
         self.vertices, self.edges = self._generate_model()
+
+    def update(self, dt):
+        """Updates the asteroid's orientation over time."""
+        w_quat = np.concatenate(([0.0], self.angular_velocity))
+        q_derivative = 0.5 * q_multiply(self.orientation, w_quat)
+        self.orientation += q_derivative * dt
+
+        # Normalize the quaternion
+        norm = np.linalg.norm(self.orientation)
+        if norm > 0:
+            self.orientation /= norm
 
     def _generate_model(self):
         """Creates a randomized, rocky-looking 3D model."""
@@ -62,7 +80,7 @@ def create_asteroid_field(num_asteroids, field_size):
     for _ in range(num_asteroids):
         # Position asteroids in a large cubic volume
         pos = np.random.uniform(-field_size/2, field_size/2, 3)
-        size = np.random.uniform(10, 60) # Asteroids are 10m to 60m in size
+        size = np.random.uniform(50, 300) # Asteroids are 50m to 300m in size
 
         # Ensure asteroids don't spawn too close to the player's starting point
         if np.linalg.norm(pos) < 300:
@@ -74,9 +92,9 @@ def create_asteroid_field(num_asteroids, field_size):
 def create_gate_course():
     """Creates a predefined sequence of 8 gates for the race course."""
     gates = []
-    gate_size = 40 # Gates have a 40m opening
+    gate_size = 40 # Base gate size
 
-    # A simple, winding course with 8 gates, scaled by a factor of 10.
+    # A simple, winding course with 8 gates, scaled up.
     path = [
         {'pos': [0, 0, 500], 'axis': [1,0,0], 'angle': 0},
         {'pos': [400, 200, 1000], 'axis': [0,1,0], 'angle': np.pi/4},
@@ -89,8 +107,8 @@ def create_gate_course():
     ]
 
     for node in path:
-        pos = np.array(node['pos']) * 10
+        pos = np.array(node['pos']) * 20 # Gates are now 20x original distance
         orient = q_from_axis_angle(np.array(node['axis']), node['angle'])
-        gates.append(Gate(pos, orient, gate_size * 10)) # Also scale gate size
+        gates.append(Gate(pos, orient, gate_size * 20)) # Also scale gate size
 
     return gates

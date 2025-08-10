@@ -1,6 +1,6 @@
 import pygame
 import numpy as np
-from spaceship import qv_rotate
+from utils import qv_rotate
 
 # A simple 3D wireframe model for the spaceship (vertices in local/model space)
 # The shape is a wedge/pointer, with the nose pointing along the +Z axis.

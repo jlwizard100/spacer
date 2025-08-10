@@ -1,10 +1,11 @@
 import pygame
 import numpy as np
 import config
-from spaceship import Spaceship, qv_rotate
+from spaceship import Spaceship
 from renderer import Camera, draw_ship, draw_asteroid, draw_gate
 from game_objects import create_asteroid_field, create_gate_course
 from hud import HUD
+from utils import qv_rotate
 
 # --- Game Setup ---
 WIDTH, HEIGHT = 1280, 800
@@ -15,7 +16,7 @@ def reset_game():
     """Resets the game to its initial state."""
     ship = Spaceship()
     gates = create_gate_course()
-    asteroids = create_asteroid_field(2000, 50000)
+    asteroids = create_asteroid_field(1000, 50000)
 
     game_state = {
         "ship": ship,
@@ -111,6 +112,8 @@ def main():
         # --- Updates (only if playing) ---
         if gs["status"] == "playing":
             gs["ship"].update(dt, thrust_input, pitch_input, yaw_input, roll_input)
+            for asteroid in gs["asteroids"]:
+                asteroid.update(dt)
 
             # --- Collision and Gate Logic ---
             # 1. Check for collision with asteroids
