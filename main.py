@@ -32,11 +32,21 @@ def main():
     """Main game function."""
     global FONT_BIG, FONT_SMALL
     pygame.init()
+    pygame.joystick.init() # Initialize the joystick module
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("3D Spaceship Simulator")
     clock = pygame.time.Clock()
     FONT_BIG = pygame.font.Font(None, 72)
     FONT_SMALL = pygame.font.Font(None, 36)
+
+    # --- Joystick Setup ---
+    joystick = None
+    if pygame.joystick.get_count() > 0:
+        joystick = pygame.joystick.Joystick(0)
+        joystick.init()
+        print(f"INFO: Joystick detected: {joystick.get_name()}")
+    else:
+        print("INFO: No joystick detected. Using keyboard controls.")
 
     gs = reset_game()
 
@@ -57,15 +67,43 @@ def main():
                     thrust_input = 0.0 # Also reset input state
 
         # --- Input Handling ---
+        # Get keyboard state
         keys = pygame.key.get_pressed()
-        if gs["status"] == "playing":
-            if keys[pygame.K_w]: thrust_input = min(1.0, thrust_input + dt * 0.5)
-            elif keys[pygame.K_s]: thrust_input = max(0.0, thrust_input - dt * 0.5)
-            pitch_input = 1.0 if keys[pygame.K_DOWN] else -1.0 if keys[pygame.K_UP] else 0.0
-            yaw_input = -1.0 if keys[pygame.K_LEFT] else 1.0 if keys[pygame.K_RIGHT] else 0.0
-            roll_input = -1.0 if keys[pygame.K_a] else 1.0 if keys[pygame.K_d] else 0.0
-        else:
-            # No input if game is over
+        k_pitch = 1.0 if keys[pygame.K_DOWN] else -1.0 if keys[pygame.K_UP] else 0.0
+        k_yaw = -1.0 if keys[pygame.K_LEFT] else 1.0 if keys[pygame.K_RIGHT] else 0.0
+        k_roll = -1.0 if keys[pygame.K_a] else 1.0 if keys[pygame.K_d] else 0.0
+
+        # Get joystick state
+        j_pitch, j_yaw, j_roll, j_thrust_active = 0.0, 0.0, 0.0, False
+        if joystick:
+            def deadzone(val, dz=0.15): return val if abs(val) > dz else 0.0
+
+            # Common axis mappings (may need adjustment for different controllers)
+            j_yaw = deadzone(joystick.get_axis(0))    # Left stick X
+            j_pitch = -deadzone(joystick.get_axis(1)) # Left stick Y (inverted)
+            if joystick.get_numaxes() > 3:
+                j_roll = deadzone(joystick.get_axis(3))   # Right stick X
+
+            # Thrust from Right Trigger (e.g., axis 5 on Xbox controller)
+            # This axis rests at -1.0 and goes to 1.0 when fully pressed.
+            if joystick.get_numaxes() > 5:
+                trigger_val = joystick.get_axis(5)
+                if trigger_val > -0.99: # If trigger is being used
+                    thrust_input = (trigger_val + 1.0) / 2.0
+                    j_thrust_active = True
+
+        # Combine keyboard and joystick inputs
+        pitch_input = np.clip(k_pitch + j_pitch, -1.0, 1.0)
+        yaw_input = np.clip(k_yaw + j_yaw, -1.0, 1.0)
+        roll_input = np.clip(k_roll + j_roll, -1.0, 1.0)
+
+        # Handle thrust (joystick overrides keyboard's gradual control)
+        if not j_thrust_active:
+            k_thrust_change = 1.0 if keys[pygame.K_w] else -1.0 if keys[pygame.K_s] else 0.0
+            thrust_input = np.clip(thrust_input + k_thrust_change * dt * 0.5, 0.0, 1.0)
+
+        # Zero out all inputs if game is not in "playing" state
+        if gs["status"] != "playing":
             thrust_input, pitch_input, yaw_input, roll_input = 0,0,0,0
 
         # --- Updates (only if playing) ---
