@@ -52,8 +52,9 @@ def main():
 
     gs = reset_game()
 
-    # Control state
+    # Persistent control state for event-driven input
     thrust_input = 0.0
+    j_pitch, j_yaw, j_roll = 0.0, 0.0, 0.0
 
     running = True
     while running:
@@ -68,6 +69,21 @@ def main():
                     gs = reset_game()
                     thrust_input = 0.0 # Also reset input state
 
+            elif event.type == pygame.JOYAXISMOTION:
+                if joystick:
+                    def deadzone(val, dz=0.15): return val if abs(val) > dz else 0.0
+
+                    if event.axis == config.JOYSTICK_AXIS_YAW:
+                        j_yaw = deadzone(event.value)
+                    elif event.axis == config.JOYSTICK_AXIS_PITCH:
+                        j_pitch = -deadzone(event.value) # Inverted
+                    elif event.axis == config.JOYSTICK_AXIS_ROLL:
+                        j_roll = deadzone(event.value)
+                    elif event.axis == config.JOYSTICK_AXIS_THRUST:
+                        # This logic handles triggers that rest at -1 or 0.
+                        # Assumes positive values are "pressed".
+                        thrust_input = max(0, event.value)
+
         # --- Input Handling ---
         # Get keyboard state
         keys = pygame.key.get_pressed()
@@ -75,25 +91,8 @@ def main():
         k_yaw = -1.0 if keys[pygame.K_LEFT] else 1.0 if keys[pygame.K_RIGHT] else 0.0
         k_roll = -1.0 if keys[pygame.K_a] else 1.0 if keys[pygame.K_d] else 0.0
 
-        # Get joystick state
-        j_pitch, j_yaw, j_roll, j_thrust_active = 0.0, 0.0, 0.0, False
-        if joystick:
-            def deadzone(val, dz=0.15): return val if abs(val) > dz else 0.0
-
-            # Axis mappings from config file
-            if joystick.get_numaxes() > config.JOYSTICK_AXIS_YAW:
-                j_yaw = deadzone(joystick.get_axis(config.JOYSTICK_AXIS_YAW))
-            if joystick.get_numaxes() > config.JOYSTICK_AXIS_PITCH:
-                j_pitch = -deadzone(joystick.get_axis(config.JOYSTICK_AXIS_PITCH)) # Inverted
-            if joystick.get_numaxes() > config.JOYSTICK_AXIS_ROLL:
-                j_roll = deadzone(joystick.get_axis(config.JOYSTICK_AXIS_ROLL))
-
-            # Thrust from a trigger axis
-            if joystick.get_numaxes() > config.JOYSTICK_AXIS_THRUST:
-                trigger_val = joystick.get_axis(config.JOYSTICK_AXIS_THRUST)
-                if trigger_val > -0.99: # If trigger is being used
-                    thrust_input = (trigger_val + 1.0) / 2.0
-                    j_thrust_active = True
+        # Check if joystick is providing thrust input
+        j_thrust_active = joystick and joystick.get_axis(config.JOYSTICK_AXIS_THRUST) > 0.05
 
         # Combine keyboard and joystick inputs
         pitch_input = np.clip(k_pitch + j_pitch, -1.0, 1.0)
