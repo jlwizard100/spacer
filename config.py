@@ -7,7 +7,7 @@ SHIP_MASS = 20000.0  # kg
 
 # --- Thruster Properties ---
 # Main thruster provides forward force
-MAIN_THRUSTER_MIN_FORCE = 2000.0  # Newtons
+MAIN_THRUSTER_MIN_FORCE = 0.0  # Newtons
 MAIN_THRUSTER_MAX_FORCE = 10000.0 # Newtons
 
 # Steering thrusters provide rotational force (torque)

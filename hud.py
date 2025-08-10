@@ -64,8 +64,8 @@ class HUD:
 
             # Format the data into strings
             telemetry_data = [
-                f"Position (X,Y,Z): {pos[0]:>8.1f}, {pos[1]:>8.1f}, {pos[2]:>8.1f}",
                 f"Speed           : {vel_kmh:>8.1f} km/h   |   Thrust: {thrust_n:>8.0f} N",
+                f"Position (X,Y,Z): {pos[0]:>8.1f}, {pos[1]:>8.1f}, {pos[2]:>8.1f}",
                 f"Direction   (Vec): <{ship.get_forward_vector()[0]:.2f}, {ship.get_forward_vector()[1]:.2f}, {ship.get_forward_vector()[2]:.2f}>",
                 f"Orientation (R,P,Y): {roll:>8.1f}°, {pitch:>8.1f}°, {yaw:>8.1f}°"
             ]
