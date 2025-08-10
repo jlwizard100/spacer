@@ -15,7 +15,7 @@ def reset_game():
     """Resets the game to its initial state."""
     ship = Spaceship()
     gates = create_gate_course()
-    asteroids = create_asteroid_field(200, 5000)
+    asteroids = create_asteroid_field(2000, 50000)
 
     game_state = {
         "ship": ship,

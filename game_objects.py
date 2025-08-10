@@ -76,7 +76,7 @@ def create_gate_course():
     gates = []
     gate_size = 40 # Gates have a 40m opening
 
-    # A simple, winding course with 8 gates
+    # A simple, winding course with 8 gates, scaled by a factor of 10.
     path = [
         {'pos': [0, 0, 500], 'axis': [1,0,0], 'angle': 0},
         {'pos': [400, 200, 1000], 'axis': [0,1,0], 'angle': np.pi/4},
@@ -89,8 +89,8 @@ def create_gate_course():
     ]
 
     for node in path:
-        pos = np.array(node['pos'])
+        pos = np.array(node['pos']) * 10
         orient = q_from_axis_angle(np.array(node['axis']), node['angle'])
-        gates.append(Gate(pos, orient, gate_size))
+        gates.append(Gate(pos, orient, gate_size * 10)) # Also scale gate size
 
     return gates
