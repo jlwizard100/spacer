@@ -4,7 +4,7 @@ import json
 import numpy as np
 from renderer import Camera, draw_wireframe_object
 from game_objects import Gate, Asteroid, ASTEROID_MODELS, load_course_from_file
-from utils import q_from_axis_angle, q_multiply
+from utils import q_from_axis_angle, q_multiply, qv_rotate
 
 # --- Constants ---
 WIDTH, HEIGHT = 1600, 900
@@ -23,12 +23,7 @@ class DesignerCamera(Camera):
     def __init__(self, fov=75):
         super().__init__(MAIN_VIEW_WIDTH, HEIGHT, fov)
         self.position = np.array([0.0, 1000.0, -2000.0]); self.target = np.array([0.0, 0.0, 0.0])
-
-def rotate_vector(vec, axis, angle):
-    q = q_from_axis_angle(axis, angle)
-    q_vec = np.concatenate(([0.0], vec))
-    rotated_q = q_multiply(q, q_multiply(q_vec, np.array([q[0], -q[1], -q[2], -q[3]])))
-    return rotated_q[1:]
+        self.up = np.array([0.0, 1.0, 0.0])
 
 def save_course_to_file(filepath, gates, asteroids):
     """Saves the current scene to a JSON file."""
@@ -53,7 +48,6 @@ def main():
     pygame.display.set_caption("Spaceship Course Designer")
     clock = pygame.time.Clock()
     font = pygame.font.Font(None, 30)
-    font_small = pygame.font.Font(None, 24)
 
     camera = DesignerCamera()
 
@@ -82,18 +76,15 @@ def main():
             if event.type == pygame.QUIT: running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE: running = False
-                # --- File I/O ---
                 if event.key == pygame.K_s and (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]):
                     save_course_to_file(current_filename, scene_gates, scene_asteroids)
                     status_message, status_message_timer = f"Saved to {current_filename}", 3
                 if event.key == pygame.K_l and (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]):
                     try:
                         scene_gates, scene_asteroids = load_course_from_file(current_filename)
-                        selected_object = None
-                        status_message, status_message_timer = f"Loaded from {current_filename}", 3
-                    except FileNotFoundError:
-                        status_message, status_message_timer = f"File not found: {current_filename}", 3
-                # --- Object Creation / Deletion ---
+                        selected_object = None; status_message, status_message_timer = f"Loaded from {current_filename}", 3
+                    except (FileNotFoundError, json.JSONDecodeError) as e:
+                        status_message, status_message_timer = f"Error loading file: {e}", 3
                 if not (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]):
                     if event.key == pygame.K_g:
                         new_gate = Gate(position=[0,0,0], orientation=[1,0,0,0], size=800); scene_gates.append(new_gate)
@@ -115,7 +106,6 @@ def main():
                             asteroid.set_model(ASTEROID_MODEL_IDS[event.key - pygame.K_1])
 
             if mx < MAIN_VIEW_WIDTH:
-                # Mouse event handling for camera...
                 if event.type == pygame.MOUSEWHEEL:
                     direction = camera.target - camera.position
                     if np.linalg.norm(direction) > 0:
@@ -125,12 +115,11 @@ def main():
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         closest_obj = None; min_dist_sq = 20**2
-                        for i, gate in enumerate(scene_gates):
-                            p = camera.project_point(gate.position)
-                            if p and (p[0]-mx)**2 + (p[1]-my)**2 < min_dist_sq: min_dist_sq=(p[0]-mx)**2 + (p[1]-my)**2; closest_obj=("gate", i)
-                        for i, asteroid in enumerate(scene_asteroids):
-                            p = camera.project_point(asteroid.position)
-                            if p and (p[0]-mx)**2 + (p[1]-my)**2 < min_dist_sq: min_dist_sq=(p[0]-mx)**2 + (p[1]-my)**2; closest_obj=("asteroid", i)
+                        all_objects = [("gate", i, g) for i, g in enumerate(scene_gates)] + [("asteroid", i, a) for i, a in enumerate(scene_asteroids)]
+                        for obj_type, i, obj in all_objects:
+                            p = camera.project_point(obj.position)
+                            if p and (p[0]-mx)**2 + (p[1]-my)**2 < min_dist_sq:
+                                min_dist_sq=(p[0]-mx)**2 + (p[1]-my)**2; closest_obj=(obj_type, i)
                         selected_object = closest_obj
                     elif event.button == 3: orbiting = True
                     elif event.button == 2: panning = True
@@ -141,19 +130,19 @@ def main():
                     dx, dy = event.rel
                     if orbiting:
                         cam_vec = camera.position - camera.target
-                        yaw, pitch = -dx*0.005, -dy*0.005
-                        cam_vec = rotate_vector(cam_vec, [0,1,0], yaw)
-                        right = np.cross([0,1,0], cam_vec); right /= np.linalg.norm(right)
-                        cam_vec = rotate_vector(cam_vec, right, pitch)
-                        camera.position = camera.target + cam_vec
+                        yaw = -dx * 0.005; pitch = -dy * 0.005
+                        q_yaw = q_from_axis_angle(camera.up, yaw)
+                        right_vec = np.cross(camera.up, cam_vec/np.linalg.norm(cam_vec))
+                        q_pitch = q_from_axis_angle(right_vec, pitch)
+                        q_rot = q_multiply(q_pitch, q_yaw)
+                        camera.position = camera.target + qv_rotate(q_rot, cam_vec)
                     if panning:
-                        right = np.cross([0,1,0], camera.position - camera.target); right /= np.linalg.norm(right)
-                        up = np.cross(camera.position - camera.target, right); up /= np.linalg.norm(up)
-                        camera.position += -right * dx * 2.0 + up * dy * 2.0
-                        camera.target += -right * dx * 2.0 + up * dy * 2.0
+                        forward_vec = camera.target - camera.position; forward_vec[1] = 0; forward_vec/=np.linalg.norm(forward_vec)
+                        right_vec = np.cross(forward_vec, camera.up)
+                        move_vec = -right_vec * dx * 2.0 + forward_vec * dy * 2.0
+                        camera.position += move_vec; camera.target += move_vec
 
         if selected_object:
-            # Keyboard handling for object transforms...
             obj = scene_gates[selected_object[1]] if selected_object[0] == "gate" else scene_asteroids[selected_object[1]]
             move_speed, rot_speed = 500*dt, 2*dt
             if keys[pygame.K_RIGHT]: obj.position[0] += move_speed
