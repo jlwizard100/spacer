@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "course_name": "Test Course Alpha",
+  "boundaries": {
+    "width": 20000,
+    "height": 20000,
+    "depth": 20000
+  },
+  "race_gates": [
+    {
+      "gate_number": 1,
+      "position": [0, 0, 2000],
+      "orientation": [1, 0, 0, 0],
+      "size": 800
+    },
+    {
+      "gate_number": 2,
+      "position": [0, 0, 4000],
+      "orientation": [1, 0, 0, 0],
+      "size": 800
+    }
+  ],
+  "asteroids": [
+    {
+      "model_id": "asteroid_jagged_1",
+      "position": [100, -250, 1200],
+      "orientation": [0.707, 0.707, 0, 0],
+      "size": 150,
+      "angular_velocity": [0.1, -0.05, 0.2]
+    },
+    {
+      "model_id": "asteroid_cube_simple",
+      "position": [-500, 300, 2500],
+      "orientation": [0.5, 0.5, 0.5, 0.5],
+      "size": 80,
+      "angular_velocity": [0, 0.1, 0]
+    },
+    {
+      "model_id": "asteroid_jagged_1",
+      "position": [400, 100, 3100],
+      "orientation": [0.8, 0.2, 0.5, 0.3],
+      "size": 200,
+      "angular_velocity": [-0.05, -0.05, -0.05]
+    }
+  ]
+}
