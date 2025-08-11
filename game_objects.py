@@ -1,15 +1,6 @@
 import json
 import numpy as np
-from utils import q_multiply
-
-# --- Quaternion helper for gate setup ---
-def q_from_axis_angle(axis, angle):
-    """Creates a quaternion from an axis and an angle."""
-    axis = axis / np.linalg.norm(axis)
-    half_angle = angle / 2.0
-    w = np.cos(half_angle)
-    x, y, z = axis * np.sin(half_angle)
-    return np.array([w, x, y, z])
+from utils import q_multiply, q_from_axis_angle
 
 # --- Asteroid Model Library ---
 # A library of predefined wireframe models for asteroids.
