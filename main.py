@@ -3,7 +3,7 @@ import numpy as np
 import config
 from spaceship import Spaceship
 from renderer import Camera, draw_ship, draw_asteroid, draw_gate
-from game_objects import create_asteroid_field, create_gate_course
+from game_objects import load_course_from_file
 from hud import HUD
 from utils import qv_rotate
 
@@ -15,8 +15,7 @@ FONT_SMALL = None
 def reset_game():
     """Resets the game to its initial state."""
     ship = Spaceship()
-    gates = create_gate_course()
-    asteroids = create_asteroid_field(1000, 50000)
+    gates, asteroids = load_course_from_file("course.json")
 
     game_state = {
         "ship": ship,
