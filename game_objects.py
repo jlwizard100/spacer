@@ -100,13 +100,13 @@ class Gate:
 def load_course_from_file(filepath):
     """
     Loads a course definition from a JSON file.
-    Returns a tuple of (gates, asteroids).
+    Returns a dictionary containing gates, asteroids, and boundaries.
     """
     with open(filepath, 'r') as f:
         data = json.load(f)
 
     gates = []
-    for g_data in sorted(data['race_gates'], key=lambda x: x['gate_number']):
+    for g_data in sorted(data.get('race_gates', []), key=lambda x: x['gate_number']):
         gate = Gate(
             position=g_data['position'],
             orientation=g_data['orientation'],
@@ -115,7 +115,7 @@ def load_course_from_file(filepath):
         gates.append(gate)
 
     asteroids = []
-    for a_data in data['asteroids']:
+    for a_data in data.get('asteroids', []):
         asteroid = Asteroid(
             position=a_data['position'],
             size=a_data['size'],
@@ -125,5 +125,9 @@ def load_course_from_file(filepath):
         )
         asteroids.append(asteroid)
 
-    print(f"INFO: Loaded course '{data['course_name']}' with {len(gates)} gates and {len(asteroids)} asteroids.")
-    return gates, asteroids
+    print(f"INFO: Loaded course '{data.get('course_name', 'N/A')}' with {len(gates)} gates and {len(asteroids)} asteroids.")
+    return {
+        "gates": gates,
+        "asteroids": asteroids,
+        "boundaries": data.get("boundaries", {"width": 20000, "height": 20000, "depth": 20000})
+    }

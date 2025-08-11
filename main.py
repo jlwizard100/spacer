@@ -15,7 +15,9 @@ FONT_SMALL = None
 def reset_game():
     """Resets the game to its initial state."""
     ship = Spaceship()
-    gates, asteroids = load_course_from_file("course.json")
+    course_data = load_course_from_file("course.json")
+    gates = course_data["gates"]
+    asteroids = course_data["asteroids"]
 
     game_state = {
         "ship": ship,
