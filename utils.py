@@ -23,3 +23,11 @@ def qv_rotate(q, v):
     q_conj = q_conjugate(q)
     rotated_v_quat = q_multiply(q_multiply(q, v_quat), q_conj)
     return rotated_v_quat[1:]
+
+def q_from_axis_angle(axis, angle):
+    """Creates a quaternion from an axis and an angle."""
+    axis = axis / np.linalg.norm(axis)
+    half_angle = angle / 2.0
+    w = np.cos(half_angle)
+    x, y, z = axis * np.sin(half_angle)
+    return np.array([w, x, y, z])
