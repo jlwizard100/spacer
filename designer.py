@@ -40,6 +40,21 @@ def save_course_to_file(filepath, gates, asteroids, bounds_size):
     with open(filepath, 'w') as f: json.dump(course_data, f, indent=2)
     print(f"INFO: Course saved to {filepath}")
 
+def generate_random_asteroids(count, field_size):
+    """Creates a list of randomly generated asteroids."""
+    asteroids = []
+    half_size = field_size / 2
+    for _ in range(count):
+        pos = np.random.uniform(-half_size, half_size, 3)
+        size = np.random.uniform(100, 500)
+        axis = np.random.rand(3) * 2 - 1; axis /= np.linalg.norm(axis)
+        angle = np.random.rand() * 2 * np.pi
+        orientation = q_from_axis_angle(axis, angle)
+        model_id = random.choice(ASTEROID_MODEL_IDS)
+        angular_velocity = np.random.rand(3) * 0.1
+        asteroids.append(Asteroid(pos, size, orientation, angular_velocity, model_id))
+    return asteroids
+
 def draw_text(surface, text, pos, font, color=COLOR_TEXT):
     text_surface = font.render(text, True, color)
     surface.blit(text_surface, pos)
@@ -85,15 +100,14 @@ def main():
                 is_ctrl = keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]
                 is_shift = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
 
-                # --- File I/O ---
                 if event.key == pygame.K_s and is_ctrl:
-                    if is_shift or current_filename == "Untitled.json": # Save As
+                    if is_shift or current_filename == "Untitled.json":
                         filepath = filedialog.asksaveasfilename(initialdir=".", title="Save Course As...", filetypes=(("JSON files", "*.json"),), defaultextension=".json")
                         if filepath:
                             current_filename = filepath
                             save_course_to_file(current_filename, scene_gates, scene_asteroids, boundary_size)
                             status_message, status_message_timer = f"Saved to {os.path.basename(current_filename)}", 3
-                    else: # Quick Save
+                    else:
                         save_course_to_file(current_filename, scene_gates, scene_asteroids, boundary_size)
                         status_message, status_message_timer = f"Saved to {os.path.basename(current_filename)}", 3
 
@@ -113,6 +127,10 @@ def main():
                         new_gate = Gate(position=[0,0,0], orientation=[1,0,0,0], size=800); scene_gates.append(new_gate); selected_object = ("gate", len(scene_gates) - 1)
                     if event.key == pygame.K_a:
                         new_asteroid = Asteroid(position=[0,0,0], size=200, orientation=[1,0,0,0], angular_velocity=[0,0,0], model_id="asteroid_jagged_1"); scene_asteroids.append(new_asteroid); selected_object = ("asteroid", len(scene_asteroids) - 1)
+                    if event.key == pygame.K_p:
+                        new_asteroids = generate_random_asteroids(count=50, field_size=boundary_size)
+                        scene_asteroids.extend(new_asteroids)
+                        status_message, status_message_timer = "Added 50 random asteroids", 3
                     if event.key == pygame.K_DELETE:
                         if selected_object:
                             obj_type, obj_idx = selected_object
@@ -124,6 +142,7 @@ def main():
                         if event.key in (pygame.K_PLUS, pygame.K_EQUALS): asteroid.set_size(asteroid.size + 20)
                         if event.key in (pygame.K_MINUS, pygame.K_UNDERSCORE): asteroid.set_size(max(10, asteroid.size - 20))
                         if pygame.K_1 <= event.key <= pygame.K_3: asteroid.set_model(ASTEROID_MODEL_IDS[event.key - pygame.K_1])
+
                 if event.key == pygame.K_PAGEUP and is_ctrl: boundary_size += 1000
                 if event.key == pygame.K_PAGEDOWN and is_ctrl: boundary_size = max(1000, boundary_size - 1000)
 
@@ -169,8 +188,8 @@ def main():
             move_speed, rot_speed = 500*dt, 2*dt
             if keys[pygame.K_RIGHT]: obj.position[0] += move_speed
             if keys[pygame.K_LEFT]: obj.position[0] -= move_speed
-            if keys[pygame.K_UP] and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]): obj.position[2] += move_speed
-            if keys[pygame.K_DOWN] and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]): obj.position[2] -= move_speed
+            if keys[pygame.K_UP] and not is_ctrl: obj.position[2] += move_speed
+            if keys[pygame.K_DOWN] and not is_ctrl: obj.position[2] -= move_speed
             if keys[pygame.K_PAGEUP] and not is_ctrl: obj.position[1] += move_speed
             if keys[pygame.K_PAGEDOWN] and not is_ctrl: obj.position[1] -= move_speed
             if keys[pygame.K_e]: obj.orientation = q_multiply(q_from_axis_angle([0,1,0], -rot_speed), obj.orientation)
@@ -201,6 +220,7 @@ def main():
         screen.fill(COLOR_SIDEBAR, pygame.Rect(MAIN_VIEW_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT))
         sidebar_x = MAIN_VIEW_WIDTH + 20; y_pos = 20
         draw_text(screen, f"File: {os.path.basename(current_filename)}", (sidebar_x, y_pos), font_title); y_pos += 40
+        draw_text(screen, f"Boundary: {boundary_size:.0f}", (sidebar_x, y_pos), font_title); y_pos += 40
         if selected_object:
             obj_type, obj_idx = selected_object
             obj = scene_gates[obj_idx] if obj_type == "gate" else scene_asteroids[obj_idx]
