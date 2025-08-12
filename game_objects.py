@@ -1,31 +1,72 @@
+import json
 import numpy as np
-from utils import q_multiply
+from utils import q_multiply, q_from_axis_angle
 
-# --- Quaternion helper for gate setup ---
-def q_from_axis_angle(axis, angle):
-    """Creates a quaternion from an axis and an angle."""
-    axis = axis / np.linalg.norm(axis)
-    half_angle = angle / 2.0
-    w = np.cos(half_angle)
-    x, y, z = axis * np.sin(half_angle)
-    return np.array([w, x, y, z])
+# --- Asteroid Model Library ---
+# A library of predefined wireframe models for asteroids.
+# The vertices are defined in a normalized space (e.g., a 1x1x1 cube)
+# and will be scaled by the asteroid's size.
+
+_CUBE_VERTICES = np.array([
+    [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
+    [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5]
+])
+_CUBE_EDGES = [
+    (0,1), (1,2), (2,3), (3,0), (4,5), (5,6), (6,7), (7,4),
+    (0,4), (1,5), (2,6), (3,7)
+]
+
+_TETRA_VERTICES = np.array([
+    [0.5, 0.5, 0.5], [-0.5, -0.5, 0.5], [-0.5, 0.5, -0.5], [0.5, -0.5, -0.5]
+])
+_TETRA_EDGES = [(0,1), (0,2), (0,3), (1,2), (1,3), (2,3)]
+
+# A pre-randomized "jagged" asteroid model for variety.
+# This uses a fixed seed to ensure it's the same every time.
+np.random.seed(42)
+_JAGGED_VERTICES = _CUBE_VERTICES * 1.2 + np.random.uniform(-0.3, 0.3, _CUBE_VERTICES.shape)
+np.random.seed(None) # Reset seed
+
+ASTEROID_MODELS = {
+    "asteroid_cube_simple": (_CUBE_VERTICES, _CUBE_EDGES),
+    "asteroid_tetrahedron": (_TETRA_VERTICES, _TETRA_EDGES),
+    "asteroid_jagged_1": (_JAGGED_VERTICES, _CUBE_EDGES), # Use cube edges for jagged
+}
 
 class Asteroid:
     """
     Represents a single asteroid in the game world.
     """
-    def __init__(self, position, size):
-        self.position = position
-        self.size = size
+    def __init__(self, position, size, orientation, angular_velocity, model_id):
+        self.position = np.array(position, dtype=float)
+        self.orientation = np.array(orientation, dtype=float)
+        self.angular_velocity = np.array(angular_velocity, dtype=float)
 
-        # Give asteroid a random initial orientation and angular velocity
-        axis = np.random.rand(3) * 2 - 1
-        axis /= np.linalg.norm(axis)
-        angle = np.random.rand() * 2 * np.pi
-        self.orientation = q_from_axis_angle(axis, angle)
-        self.angular_velocity = np.random.rand(3) * 0.5 # rad/s
+        self.base_vertices = None
+        self.edges = None
+        self.model_id = None
+        self.size = None
 
-        self.vertices, self.edges = self._generate_model()
+        self.set_model(model_id)
+        self.set_size(size)
+
+    def set_size(self, new_size):
+        """Updates the asteroid's size and rescales its vertices."""
+        self.size = new_size
+        self.vertices = self.base_vertices * self.size
+
+    def set_model(self, new_model_id):
+        """Changes the asteroid's model and rescales the new vertices."""
+        if new_model_id == self.model_id:
+            return
+
+        self.model_id = new_model_id
+        self.base_vertices, self.edges = ASTEROID_MODELS.get(
+            self.model_id, ASTEROID_MODELS["asteroid_cube_simple"]
+        )
+        # Ensure vertices are rescaled if size is already set
+        if self.size is not None:
+            self.set_size(self.size)
 
     def update(self, dt):
         """Updates the asteroid's orientation over time."""
@@ -38,31 +79,13 @@ class Asteroid:
         if norm > 0:
             self.orientation /= norm
 
-    def _generate_model(self):
-        """Creates a randomized, rocky-looking 3D model."""
-        # Start with a base cube shape
-        base_verts = np.array([
-            [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
-            [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
-        ])
-        # Scale it by the asteroid's size and add random perturbations
-        verts = base_verts * self.size
-        verts += np.random.uniform(-self.size/2, self.size/2, verts.shape)
-
-        edges = [
-            (0,1), (1,2), (2,3), (3,0), # Bottom face
-            (4,5), (5,6), (6,7), (7,4), # Top face
-            (0,4), (1,5), (2,6), (3,7)  # Connecting edges
-        ]
-        return verts, edges
-
 class Gate:
     """
     Represents a single race gate in the obstacle course.
     """
     def __init__(self, position, orientation, size=30):
-        self.position = position
-        self.orientation = orientation
+        self.position = np.array(position)
+        self.orientation = np.array(orientation)
         self.size = size # The radius of the gate opening
         self.is_passed = False
 
@@ -74,41 +97,37 @@ class Gate:
         self.edges = [(0,1), (1,2), (2,3), (3,0)]
 
 
-def create_asteroid_field(num_asteroids, field_size):
-    """Generates a list of randomly placed asteroids."""
-    asteroids = []
-    for _ in range(num_asteroids):
-        # Position asteroids in a large cubic volume
-        pos = np.random.uniform(-field_size/2, field_size/2, 3)
-        size = np.random.uniform(50, 300) # Asteroids are 50m to 300m in size
+def load_course_from_file(filepath):
+    """
+    Loads a course definition from a JSON file.
+    Returns a dictionary containing gates, asteroids, and boundaries.
+    """
+    with open(filepath, 'r') as f:
+        data = json.load(f)
 
-        # Ensure asteroids don't spawn too close to the player's starting point
-        if np.linalg.norm(pos) < 300:
-            pos = pos / np.linalg.norm(pos) * 300 # Push them out to a 300m radius
-
-        asteroids.append(Asteroid(pos, size))
-    return asteroids
-
-def create_gate_course():
-    """Creates a predefined sequence of 8 gates for the race course."""
     gates = []
-    gate_size = 40 # Base gate size
+    for g_data in sorted(data.get('race_gates', []), key=lambda x: x['gate_number']):
+        gate = Gate(
+            position=g_data['position'],
+            orientation=g_data['orientation'],
+            size=g_data['size']
+        )
+        gates.append(gate)
 
-    # A simple, winding course with 8 gates, scaled up.
-    path = [
-        {'pos': [0, 0, 500], 'axis': [1,0,0], 'angle': 0},
-        {'pos': [400, 200, 1000], 'axis': [0,1,0], 'angle': np.pi/4},
-        {'pos': [400, 200, 1500], 'axis': [0,1,0], 'angle': np.pi/2},
-        {'pos': [0, 400, 2000], 'axis': [1,0,0], 'angle': -np.pi/4},
-        {'pos': [-400, 0, 2500], 'axis': [0,1,0], 'angle': -np.pi/2},
-        {'pos': [-400, -200, 3000], 'axis': [0,1,0], 'angle': -np.pi/4},
-        {'pos': [0, -400, 3500], 'axis': [1,0,0], 'angle': np.pi/4},
-        {'pos': [0, 0, 4000], 'axis': [1,0,0], 'angle': 0},
-    ]
+    asteroids = []
+    for a_data in data.get('asteroids', []):
+        asteroid = Asteroid(
+            position=a_data['position'],
+            size=a_data['size'],
+            orientation=a_data['orientation'],
+            angular_velocity=a_data['angular_velocity'],
+            model_id=a_data['model_id']
+        )
+        asteroids.append(asteroid)
 
-    for node in path:
-        pos = np.array(node['pos']) * 20 # Gates are now 20x original distance
-        orient = q_from_axis_angle(np.array(node['axis']), node['angle'])
-        gates.append(Gate(pos, orient, gate_size * 20)) # Also scale gate size
-
-    return gates
+    print(f"INFO: Loaded course '{data.get('course_name', 'N/A')}' with {len(gates)} gates and {len(asteroids)} asteroids.")
+    return {
+        "gates": gates,
+        "asteroids": asteroids,
+        "boundaries": data.get("boundaries", {"width": 20000, "height": 20000, "depth": 20000})
+    }
