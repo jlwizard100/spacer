@@ -122,17 +122,13 @@ def main():
                         camera.position = camera.target - direction * new_dist
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        print(f"\n--- CLICK @ ({mx}, {my}) ---")
                         closest_obj = None; min_dist_sq = 20**2
                         all_objects = [("gate", i, g) for i, g in enumerate(scene_gates)] + [("asteroid", i, a) for i, a in enumerate(scene_asteroids)]
                         for obj_type, i, obj in all_objects:
                             p = camera.project_point(obj.position)
-                            print(f"Checking {obj_type} {i} at pos {obj.position} (type: {obj.position.dtype}) -> projected to screen pos {p}")
                             if p and (p[0]-mx)**2 + (p[1]-my)**2 < min_dist_sq:
                                 min_dist_sq=(p[0]-mx)**2 + (p[1]-my)**2; closest_obj=(obj_type, i)
-                                print(f"  -> New closest, dist_sq: {min_dist_sq:.2f}")
                         selected_object = closest_obj
-                        print(f"==> Selected: {selected_object}")
                     elif event.button == 3: orbiting = True
                     elif event.button == 2: panning = True
                 elif event.type == pygame.MOUSEBUTTONUP:
@@ -154,9 +150,21 @@ def main():
                         move_vec = -right_vec * dx * 2.0 + forward_vec * dy * 2.0
                         camera.position += move_vec; camera.target += move_vec
 
-        # (Object transform editing code...)
         if selected_object:
-            pass
+            obj = scene_gates[selected_object[1]] if selected_object[0] == "gate" else scene_asteroids[selected_object[1]]
+            move_speed, rot_speed = 500*dt, 2*dt
+            if keys[pygame.K_RIGHT]: obj.position[0] += move_speed
+            if keys[pygame.K_LEFT]: obj.position[0] -= move_speed
+            if keys[pygame.K_UP] and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]): obj.position[2] += move_speed
+            if keys[pygame.K_DOWN] and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]): obj.position[2] -= move_speed
+            if keys[pygame.K_PAGEUP]: obj.position[1] += move_speed
+            if keys[pygame.K_PAGEDOWN]: obj.position[1] -= move_speed
+            if keys[pygame.K_e]: obj.orientation = q_multiply(q_from_axis_angle([0,1,0], -rot_speed), obj.orientation)
+            if keys[pygame.K_q]: obj.orientation = q_multiply(q_from_axis_angle([0,1,0], rot_speed), obj.orientation)
+            if keys[pygame.K_r]: obj.orientation = q_multiply(q_from_axis_angle([1,0,0], rot_speed), obj.orientation)
+            if keys[pygame.K_f]: obj.orientation = q_multiply(q_from_axis_angle([1,0,0], -rot_speed), obj.orientation)
+            if keys[pygame.K_t]: obj.orientation = q_multiply(q_from_axis_angle([0,0,1], rot_speed), obj.orientation)
+            if keys[pygame.K_g] and not (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]): obj.orientation = q_multiply(q_from_axis_angle([0,0,1], -rot_speed), obj.orientation)
 
         # --- Drawing ---
         screen.fill(COLOR_MAIN_VIEW, pygame.Rect(0, 0, MAIN_VIEW_WIDTH, HEIGHT))
