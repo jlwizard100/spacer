@@ -24,40 +24,46 @@ A standalone tool is included to create and edit race courses.
 python designer.py
 ```
 
+### General Controls
+
+*   **Adjust Boundary Size:** `CTRL` + `Page Up` / `Page Down`
+
 ### Camera Controls
 
 *   **Orbit:** Right-click + Drag
 *   **Pan:** Middle-click + Drag
 *   **Zoom:** Mouse Wheel
 
-### Object Creation
+### Object Creation & Population
 
-*   **Create Gate:** Press the `G` key. A new gate will appear at the world origin.
-*   **Create Asteroid:** Press the `A` key. A new asteroid will appear at the world origin.
+*   **Create Gate:** `G` key
+*   **Create Asteroid:** `A` key
+*   **Populate with Random Asteroids:** `P` key (adds 50 random asteroids)
 
 ### Selection & Deletion
 
-*   **Select Object:** Left-click on a gate or asteroid. The selected object will be highlighted in yellow.
-*   **Delete Selected Object:** Press the `DELETE` key.
+*   **Select Object:** Left-click on a gate or asteroid.
+*   **Delete Selected Object:** `DELETE` key.
 
 ### Editing a Selected Object
 
-The following controls apply to any selected object (gate or asteroid):
-
 *   **Move (X/Z Plane):** Arrow Keys
-*   **Move (Up/Down Y-axis):** `Page Up` / `Page Down`
+*   **Move (Up/Down Y-axis):** `Page Up` / `Page Down` (without CTRL)
 *   **Rotate (Yaw):** `Q` / `E` keys
 *   **Rotate (Pitch):** `R` / `F` keys
 *   **Rotate (Roll):** `T` / `G` keys
 
 ### Asteroid-Specific Editing
 
-The following controls only apply when an asteroid is selected:
-
 *   **Change Size:** `+` and `-` keys.
-*   **Change Model:** `1`, `2`, and `3` keys to cycle through the available wireframe models.
+*   **Change Model:** `1`, `2`, and `3` keys.
 
 ### File Operations
 
-*   **Save Course:** `CTRL + S`. This will save the current layout to `course.json`, overwriting it if it exists.
-*   **Load Course:** `CTRL + L`. This will clear the current scene and load the data from `course.json`.
+*   **Load From...:** `CTRL + L`. Opens a dialog to select a course file.
+*   **Save (Quick Save):** `CTRL + S`. Saves changes to the current file.
+*   **Save As...:** `CTRL + SHIFT + S`. Opens a dialog to save the course to a new file.
+
+### UI Display
+
+*   The sidebar on the right displays information about the current file, boundary size, and the properties of any selected object.
