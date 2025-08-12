@@ -75,7 +75,7 @@ def main():
                     def deadzone(val, dz=0.15): return val if abs(val) > dz else 0.0
 
                     if event.axis == config.JOYSTICK_AXIS_YAW:
-                        j_yaw = deadzone(event.value)
+                        j_yaw = -deadzone(event.value) # Inverted
                     elif event.axis == config.JOYSTICK_AXIS_PITCH:
                         j_pitch = -deadzone(event.value) # Inverted
                     elif event.axis == config.JOYSTICK_AXIS_ROLL:
@@ -89,7 +89,7 @@ def main():
         # Get keyboard state
         keys = pygame.key.get_pressed()
         k_pitch = 1.0 if keys[pygame.K_DOWN] else -1.0 if keys[pygame.K_UP] else 0.0
-        k_yaw = -1.0 if keys[pygame.K_LEFT] else 1.0 if keys[pygame.K_RIGHT] else 0.0
+        k_yaw = 1.0 if keys[pygame.K_LEFT] else -1.0 if keys[pygame.K_RIGHT] else 0.0 # Inverted
         k_roll = -1.0 if keys[pygame.K_a] else 1.0 if keys[pygame.K_d] else 0.0
 
         # Check if joystick is providing thrust input
