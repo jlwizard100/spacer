@@ -84,8 +84,8 @@ class Gate:
     Represents a single race gate in the obstacle course.
     """
     def __init__(self, position, orientation, size=30):
-        self.position = np.array(position)
-        self.orientation = np.array(orientation)
+        self.position = np.array(position, dtype=float)
+        self.orientation = np.array(orientation, dtype=float)
         self.size = size # The radius of the gate opening
         self.is_passed = False
 
