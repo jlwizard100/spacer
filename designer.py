@@ -114,8 +114,45 @@ def main():
                 if event.key == pygame.K_PAGEDOWN and (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]): boundary_size = max(1000, boundary_size - 1000)
 
             if mx < MAIN_VIEW_WIDTH:
-                # (mouse handling code...)
-                pass
+                if event.type == pygame.MOUSEWHEEL:
+                    direction = camera.target - camera.position
+                    if np.linalg.norm(direction) > 0:
+                        direction /= np.linalg.norm(direction)
+                        new_dist = max(10, np.linalg.norm(camera.target - camera.position) - event.y * 50)
+                        camera.position = camera.target - direction * new_dist
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        print(f"\n--- CLICK @ ({mx}, {my}) ---")
+                        closest_obj = None; min_dist_sq = 20**2
+                        all_objects = [("gate", i, g) for i, g in enumerate(scene_gates)] + [("asteroid", i, a) for i, a in enumerate(scene_asteroids)]
+                        for obj_type, i, obj in all_objects:
+                            p = camera.project_point(obj.position)
+                            print(f"Checking {obj_type} {i} at pos {obj.position} (type: {obj.position.dtype}) -> projected to screen pos {p}")
+                            if p and (p[0]-mx)**2 + (p[1]-my)**2 < min_dist_sq:
+                                min_dist_sq=(p[0]-mx)**2 + (p[1]-my)**2; closest_obj=(obj_type, i)
+                                print(f"  -> New closest, dist_sq: {min_dist_sq:.2f}")
+                        selected_object = closest_obj
+                        print(f"==> Selected: {selected_object}")
+                    elif event.button == 3: orbiting = True
+                    elif event.button == 2: panning = True
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 3: orbiting = False
+                    if event.button == 2: panning = False
+                elif event.type == pygame.MOUSEMOTION:
+                    dx, dy = event.rel
+                    if orbiting:
+                        cam_vec = camera.position - camera.target
+                        yaw, pitch = -dx*0.005, -dy*0.005
+                        q_yaw = q_from_axis_angle(camera.up, yaw)
+                        right_vec = np.cross(camera.up, cam_vec/np.linalg.norm(cam_vec))
+                        q_pitch = q_from_axis_angle(right_vec, pitch)
+                        q_rot = q_multiply(q_pitch, q_yaw)
+                        camera.position = camera.target + qv_rotate(q_rot, cam_vec)
+                    if panning:
+                        forward_vec = camera.target - camera.position; forward_vec[1] = 0; forward_vec/=np.linalg.norm(forward_vec)
+                        right_vec = np.cross(forward_vec, camera.up)
+                        move_vec = -right_vec * dx * 2.0 + forward_vec * dy * 2.0
+                        camera.position += move_vec; camera.target += move_vec
 
         # (Object transform editing code...)
         if selected_object:
