@@ -104,7 +104,7 @@ def main():
                     if event.key == pygame.K_g:
                         new_gate = Gate(position=[0,0,0], orientation=[1,0,0,0], size=800); scene_gates.append(new_gate); selected_object = ("gate", len(scene_gates) - 1)
                     if event.key == pygame.K_a:
-                        new_asteroid = Asteroid(position=[0,0,0], size=200, orientation=[1,0,0,0], angular_velocity=[0,0,0], model_id="asteroid_jagged_1"); scene_asteroids.append(new_asteroid); selected_object = ("asteroid", len(scene_asteroids) - 1)
+                        new_asteroid = Asteroid(position=[0,0,0], size=5000, orientation=[1,0,0,0], angular_velocity=[0,0,0], model_id="asteroid_jagged_1"); scene_asteroids.append(new_asteroid); selected_object = ("asteroid", len(scene_asteroids) - 1)
                     if event.key == pygame.K_p:
                         new_asteroids = generate_random_asteroids(count=50, field_size=boundary_size); scene_asteroids.extend(new_asteroids)
                         status_message, status_message_timer = "Added 50 random asteroids", 3
