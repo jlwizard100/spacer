@@ -2,6 +2,10 @@ import pygame
 import sys
 import json
 import numpy as np
+import random
+import tkinter as tk
+from tkinter import filedialog
+import os
 from renderer import Camera, draw_wireframe_object
 from game_objects import Gate, Asteroid, ASTEROID_MODELS, load_course_from_file
 from utils import q_from_axis_angle, q_multiply, qv_rotate
@@ -27,19 +31,16 @@ class DesignerCamera(Camera):
         self.up = np.array([0.0, 1.0, 0.0])
 
 def save_course_to_file(filepath, gates, asteroids, bounds_size):
-    """Saves the current scene to a JSON file."""
     course_data = {
         "version": 1, "course_name": "Designer Course",
         "boundaries": {"width": bounds_size, "height": bounds_size, "depth": bounds_size},
         "race_gates": [{"gate_number": i + 1, "position": g.position.tolist(), "orientation": g.orientation.tolist(), "size": g.size} for i, g in enumerate(gates)],
         "asteroids": [{"model_id": a.model_id, "position": a.position.tolist(), "orientation": a.orientation.tolist(), "size": a.size, "angular_velocity": a.angular_velocity.tolist()} for a in asteroids]
     }
-    with open(filepath, 'w') as f:
-        json.dump(course_data, f, indent=2)
+    with open(filepath, 'w') as f: json.dump(course_data, f, indent=2)
     print(f"INFO: Course saved to {filepath}")
 
 def draw_text(surface, text, pos, font, color=COLOR_TEXT):
-    """Helper function to draw text on a surface."""
     text_surface = font.render(text, True, color)
     surface.blit(text_surface, pos)
 
@@ -48,9 +49,9 @@ def main():
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Spaceship Course Designer")
     clock = pygame.time.Clock()
-    font = pygame.font.Font(None, 30)
-    font_small = pygame.font.Font(None, 24)
-    font_title = pygame.font.Font(None, 36)
+    font = pygame.font.Font(None, 30); font_small = pygame.font.Font(None, 24); font_title = pygame.font.Font(None, 36)
+
+    root = tk.Tk(); root.withdraw()
 
     camera = DesignerCamera()
 
@@ -64,10 +65,8 @@ def main():
 
     scene_gates, scene_asteroids = [], []
     selected_object = None
-
     orbiting, panning = False, False
-
-    current_filename = "course.json"
+    current_filename = "Untitled.json"
     status_message = ""; status_message_timer = 0
 
     running = True
@@ -82,18 +81,34 @@ def main():
             if event.type == pygame.QUIT: running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE: running = False
-                if event.key == pygame.K_s and (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]):
-                    save_course_to_file(current_filename, scene_gates, scene_asteroids, boundary_size)
-                    status_message, status_message_timer = f"Saved to {current_filename}", 3
-                if event.key == pygame.K_l and (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]):
-                    try:
-                        loaded_data = load_course_from_file(current_filename)
-                        scene_gates, scene_asteroids = loaded_data['gates'], loaded_data['asteroids']
-                        boundary_size = loaded_data.get('boundaries', {}).get('width', 20000.0)
-                        selected_object = None; status_message, status_message_timer = f"Loaded from {current_filename}", 3
-                    except (FileNotFoundError, json.JSONDecodeError) as e:
-                        status_message, status_message_timer = f"Error loading file: {e}", 3
-                if not (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]):
+
+                is_ctrl = keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]
+                is_shift = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+
+                # --- File I/O ---
+                if event.key == pygame.K_s and is_ctrl:
+                    if is_shift or current_filename == "Untitled.json": # Save As
+                        filepath = filedialog.asksaveasfilename(initialdir=".", title="Save Course As...", filetypes=(("JSON files", "*.json"),), defaultextension=".json")
+                        if filepath:
+                            current_filename = filepath
+                            save_course_to_file(current_filename, scene_gates, scene_asteroids, boundary_size)
+                            status_message, status_message_timer = f"Saved to {os.path.basename(current_filename)}", 3
+                    else: # Quick Save
+                        save_course_to_file(current_filename, scene_gates, scene_asteroids, boundary_size)
+                        status_message, status_message_timer = f"Saved to {os.path.basename(current_filename)}", 3
+
+                if event.key == pygame.K_l and is_ctrl:
+                    filepath = filedialog.askopenfilename(initialdir=".", title="Open Course File", filetypes=(("JSON files", "*.json"),("All files", "*.*")))
+                    if filepath:
+                        try:
+                            loaded_data = load_course_from_file(filepath)
+                            scene_gates, scene_asteroids = loaded_data['gates'], loaded_data['asteroids']
+                            boundary_size = loaded_data.get('boundaries', {}).get('width', 20000.0)
+                            current_filename = filepath; selected_object = None
+                            status_message, status_message_timer = f"Loaded {os.path.basename(current_filename)}", 3
+                        except (FileNotFoundError, json.JSONDecodeError) as e: status_message, status_message_timer = f"Error: {e}", 3
+
+                if not is_ctrl:
                     if event.key == pygame.K_g:
                         new_gate = Gate(position=[0,0,0], orientation=[1,0,0,0], size=800); scene_gates.append(new_gate); selected_object = ("gate", len(scene_gates) - 1)
                     if event.key == pygame.K_a:
@@ -109,9 +124,8 @@ def main():
                         if event.key in (pygame.K_PLUS, pygame.K_EQUALS): asteroid.set_size(asteroid.size + 20)
                         if event.key in (pygame.K_MINUS, pygame.K_UNDERSCORE): asteroid.set_size(max(10, asteroid.size - 20))
                         if pygame.K_1 <= event.key <= pygame.K_3: asteroid.set_model(ASTEROID_MODEL_IDS[event.key - pygame.K_1])
-                # Boundary size editing
-                if event.key == pygame.K_PAGEUP and (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]): boundary_size += 1000
-                if event.key == pygame.K_PAGEDOWN and (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]): boundary_size = max(1000, boundary_size - 1000)
+                if event.key == pygame.K_PAGEUP and is_ctrl: boundary_size += 1000
+                if event.key == pygame.K_PAGEDOWN and is_ctrl: boundary_size = max(1000, boundary_size - 1000)
 
             if mx < MAIN_VIEW_WIDTH:
                 if event.type == pygame.MOUSEWHEEL:
@@ -157,67 +171,47 @@ def main():
             if keys[pygame.K_LEFT]: obj.position[0] -= move_speed
             if keys[pygame.K_UP] and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]): obj.position[2] += move_speed
             if keys[pygame.K_DOWN] and not (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]): obj.position[2] -= move_speed
-            if keys[pygame.K_PAGEUP]: obj.position[1] += move_speed
-            if keys[pygame.K_PAGEDOWN]: obj.position[1] -= move_speed
+            if keys[pygame.K_PAGEUP] and not is_ctrl: obj.position[1] += move_speed
+            if keys[pygame.K_PAGEDOWN] and not is_ctrl: obj.position[1] -= move_speed
             if keys[pygame.K_e]: obj.orientation = q_multiply(q_from_axis_angle([0,1,0], -rot_speed), obj.orientation)
             if keys[pygame.K_q]: obj.orientation = q_multiply(q_from_axis_angle([0,1,0], rot_speed), obj.orientation)
             if keys[pygame.K_r]: obj.orientation = q_multiply(q_from_axis_angle([1,0,0], rot_speed), obj.orientation)
             if keys[pygame.K_f]: obj.orientation = q_multiply(q_from_axis_angle([1,0,0], -rot_speed), obj.orientation)
             if keys[pygame.K_t]: obj.orientation = q_multiply(q_from_axis_angle([0,0,1], rot_speed), obj.orientation)
-            if keys[pygame.K_g] and not (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]): obj.orientation = q_multiply(q_from_axis_angle([0,0,1], -rot_speed), obj.orientation)
+            if keys[pygame.K_g] and not is_ctrl: obj.orientation = q_multiply(q_from_axis_angle([0,0,1], -rot_speed), obj.orientation)
 
         # --- Drawing ---
         screen.fill(COLOR_MAIN_VIEW, pygame.Rect(0, 0, MAIN_VIEW_WIDTH, HEIGHT))
-
         s = boundary_size / 2.0
         boundary_verts = np.array([[-s,-s,-s],[s,-s,-s],[s,s,-s],[-s,s,-s],[-s,-s,s],[s,-s,s],[s,s,s],[-s,s,s]])
         draw_wireframe_object(screen, camera, np.array([0,0,0]), np.array([1,0,0,0]), boundary_verts, boundary_edges, COLOR_BOUNDS)
-
         projected_grid = [camera.project_point(v) for v in grid_verts]
         for i in range(0, len(projected_grid), 2):
             p1, p2 = projected_grid[i], projected_grid[i+1]
             if p1 and p2 and pygame.Rect(0,0,MAIN_VIEW_WIDTH,HEIGHT).collidepoint(p1) and pygame.Rect(0,0,MAIN_VIEW_WIDTH,HEIGHT).collidepoint(p2):
                 pygame.draw.line(screen, COLOR_GRID, p1, p2, 1)
-
         for i, gate in enumerate(scene_gates):
             is_selected = selected_object == ("gate", i)
             draw_wireframe_object(screen, camera, gate.position, gate.orientation, gate.vertices, gate.edges, COLOR_SELECTED if is_selected else COLOR_GATE)
             p = camera.project_point(gate.position)
             if p and p[0] < MAIN_VIEW_WIDTH: screen.blit(font.render(f"G{i+1}", True, COLOR_SELECTED if is_selected else COLOR_GATE), (p[0]+10, p[1]-10))
-
         for i, asteroid in enumerate(scene_asteroids):
             is_selected = selected_object == ("asteroid", i)
             draw_wireframe_object(screen, camera, asteroid.position, asteroid.orientation, asteroid.vertices, asteroid.edges, COLOR_SELECTED if is_selected else COLOR_ASTEROID)
-
-        # --- Sidebar UI ---
         screen.fill(COLOR_SIDEBAR, pygame.Rect(MAIN_VIEW_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT))
-        sidebar_x = MAIN_VIEW_WIDTH + 20
-        y_pos = 20
-
-        draw_text(screen, f"Boundary Size: {boundary_size:.0f}", (sidebar_x, y_pos), font_title); y_pos += 40
-
+        sidebar_x = MAIN_VIEW_WIDTH + 20; y_pos = 20
+        draw_text(screen, f"File: {os.path.basename(current_filename)}", (sidebar_x, y_pos), font_title); y_pos += 40
         if selected_object:
             obj_type, obj_idx = selected_object
             obj = scene_gates[obj_idx] if obj_type == "gate" else scene_asteroids[obj_idx]
-
-            draw_text(screen, f"Selected: {obj_type.title()} {obj_idx+1}", (sidebar_x, y_pos), font_title)
-            y_pos += 40
-
+            draw_text(screen, f"Selected: {obj_type.title()} {obj_idx+1}", (sidebar_x, y_pos), font_title); y_pos += 40
             pos = obj.position
-            draw_text(screen, f"Pos: {pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}", (sidebar_x, y_pos), font_small)
-            y_pos += 25
-
-            if obj_type == "gate":
-                draw_text(screen, f"Size: {obj.size:.1f}", (sidebar_x, y_pos), font_small)
-                y_pos += 25
+            draw_text(screen, f"Pos: {pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}", (sidebar_x, y_pos), font_small); y_pos += 25
+            if obj_type == "gate": draw_text(screen, f"Size: {obj.size:.1f}", (sidebar_x, y_pos), font_small); y_pos += 25
             elif obj_type == "asteroid":
-                draw_text(screen, f"Size: {obj.size:.1f}", (sidebar_x, y_pos), font_small)
-                y_pos += 25
-                draw_text(screen, f"Model: {obj.model_id}", (sidebar_x, y_pos), font_small)
-                y_pos += 25
-
-        if status_message_timer > 0:
-            draw_text(screen, status_message, (sidebar_x, HEIGHT - 50), font)
+                draw_text(screen, f"Size: {obj.size:.1f}", (sidebar_x, y_pos), font_small); y_pos += 25
+                draw_text(screen, f"Model: {obj.model_id}", (sidebar_x, y_pos), font_small); y_pos += 25
+        if status_message_timer > 0: draw_text(screen, status_message, (sidebar_x, HEIGHT - 50), font)
 
         pygame.display.flip()
 
