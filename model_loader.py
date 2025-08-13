@@ -15,12 +15,12 @@ class Cube:
 
         # Define the indices for the faces of the cube
         indices = [
-            (0, 2, 3), (0, 1, 2),
-            (1, 7, 2), (1, 6, 7),
-            (6, 5, 4), (4, 7, 6),
-            (4, 5, 0), (5, 1, 0),
-            (3, 2, 7), (3, 7, 4),
-            (5, 6, 1), (5, 1, 0)
+            (0, 1, 2), (0, 2, 3),  # Front face
+            (6, 5, 4), (6, 4, 7),  # Back face
+            (1, 6, 7), (1, 7, 2),  # Right face
+            (5, 0, 3), (5, 3, 4),  # Left face
+            (3, 2, 7), (3, 7, 4),  # Top face
+            (5, 6, 1), (5, 1, 0)   # Bottom face
         ]
         indices = np.array(indices, dtype='i4').flatten()
 
