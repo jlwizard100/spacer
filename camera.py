@@ -42,12 +42,12 @@ class Camera:
         return np.look_at(self.position, self.position + self.forward, self.up)
 
     def update_vectors(self):
-        self.forward.x = math.cos(math.radians(self.yaw)) * math.cos(math.radians(self.pitch))
-        self.forward.y = math.sin(math.radians(self.pitch))
-        self.forward.z = math.sin(math.radians(self.yaw)) * math.cos(math.radians(self.pitch))
+        self.forward[0] = math.cos(math.radians(self.yaw)) * math.cos(math.radians(self.pitch))
+        self.forward[1] = math.sin(math.radians(self.pitch))
+        self.forward[2] = math.sin(math.radians(self.yaw)) * math.cos(math.radians(self.pitch))
 
         self.forward = self.forward / np.linalg.norm(self.forward)
-        self.right = np.cross(self.forward, np.array([0, 1, 0])) / np.linalg.norm(np.cross(self.forward, np.array([0, 1, 0])))
+        self.right = np.cross(self.forward, np.array([0, 1, 0], dtype=np.float32))
         self.up = np.cross(self.right, self.forward)
 
     def update(self):
