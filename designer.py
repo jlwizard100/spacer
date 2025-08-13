@@ -21,6 +21,7 @@ class App:
         self.ctx.enable(mgl.DEPTH_TEST | mgl.CULL_FACE)
 
         self.clock = pg.time.Clock()
+        self.dt = 0
         self.camera = Camera(self)
 
         # Compile shaders and create a program
@@ -62,7 +63,7 @@ class App:
             self.check_events()
             self.update()
             self.render()
-            self.clock.tick(60)
+            self.dt = self.clock.tick(60) / 1000.0
 
 if __name__ == '__main__':
     app = App()
