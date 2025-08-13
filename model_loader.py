@@ -31,8 +31,10 @@ class Cube:
         # Create Vertex Array Object (VAO)
         self.vao = self.ctx.vertex_array(
             self.program,
-            [(self.vbo, '3f', 'in_position')]
+            [(self.vbo, '3f', 'in_position')],
+            index_buffer=self.ibo,
+            index_element_size=4  # 4 bytes for 'i4'
         )
 
     def render(self):
-        self.vao.render(indices=self.ibo)
+        self.vao.render()
