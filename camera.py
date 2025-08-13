@@ -58,6 +58,11 @@ class Camera:
     def move(self):
         velocity = 10 * self.app.dt
         keys = pg.key.get_pressed()
+
+        # Debugging print for key presses
+        if any(keys):
+            print(f"Keys pressed: W_down={keys[pg.K_w]}, S_down={keys[pg.K_s]}, A_down={keys[pg.K_a]}, D_down={keys[pg.K_d]}")
+
         if keys[pg.K_w]:
             self.position += self.forward * velocity
         if keys[pg.K_s]:
@@ -73,6 +78,11 @@ class Camera:
 
     def rotate(self):
         rel_x, rel_y = pg.mouse.get_rel()
+
+        # Debugging print for mouse input
+        if rel_x != 0 or rel_y != 0 or pg.mouse.get_pressed()[2]:
+            print(f"Mouse rel: ({rel_x}, {rel_y}), Right button down: {pg.mouse.get_pressed()[2]}")
+
         if pg.mouse.get_pressed()[2]: # Right mouse button
             self.yaw += rel_x * 0.1
             self.pitch -= rel_y * 0.1
