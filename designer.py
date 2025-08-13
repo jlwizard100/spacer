@@ -49,9 +49,9 @@ class App:
         self.ctx.clear(0.08, 0.16, 0.18)
 
         # Pass matrices to the shader
-        self.program['m_proj'].write(self.camera.m_proj)
-        self.program['m_view'].write(self.camera.m_view)
-        self.program['m_model'].write(self.m_model)
+        self.program['m_proj'].write(self.camera.m_proj.tobytes())
+        self.program['m_view'].write(self.camera.m_view.tobytes())
+        self.program['m_model'].write(self.m_model.tobytes())
 
         # Render the model
         self.model.render()
